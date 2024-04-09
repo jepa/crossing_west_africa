@@ -1,0 +1,166 @@
+---
+title: "Untitled"
+author: "Juliano Palacios Abrantes"
+date: "2024-04-09"
+output: 
+  html_document: 
+    toc: yes
+    keep_md: yes
+---
+
+# Script objective
+
+This script extract the different data sources for straddling stocks identification and shifts for the West Africa region. In short this script follows these 4 steps:
+
+1.- Define spatial boundaries for "West Africa"
+
+2.- Extract transboundary species for the region from [Palacios-Abrantes et al., (2020)](https://www.nature.com/articles/s41598-020-74644-2)
+
+3.- Extract shifts in these species' transboundary stocks according to [Palacios-Abrantes et al., 2022](https://onlinelibrary.wiley.com/doi/10.1111/gcb.16058)
+
+4.- Extract shifts in these species' straddling stocks according to [Palacios-Abrantes et al., in prep]()
+
+
+```{r setup, eval = T, echo = F, warning = F, message = F, results = 'hide'}
+
+library(MyFunctions)
+
+#### Project's Library
+packages <- c(
+  "tidyverse",
+  "here", # for dbem_import `here()`da
+  "data.table", #dbem_import `fread()`
+  "readxl", # for reading excell files
+  "janitor", # for clearing names
+  # "geosphere", # estimate distances between points `distm()`
+  # "ggrepel",
+  # "zoo", # for average mean
+  # "parallel", # for mclapply,
+  "sf", # for mapping
+  "st", # for mapping
+  # "rgdal", #Spatial analysis
+  # "tools", #Spatial analysis 
+  # "zeallot", # for Juanito's map
+  # "gmt", # for estimating distances between points
+  "viridis"
+  # "cowplot",
+  # "rfishbase",
+  # "stargazer", # For nice lm tables
+  # "tidytext", # for boxplot order
+  # "moments", # for skewness and kurto
+  # "pgirmess" # for non parametric post hoc test
+)
+
+my_lib(packages)
+
+# Fix new updates of sf package
+sf::sf_use_s2(use_s2 = FALSE)
+
+```
+
+# 1.- Set spatial boundaries
+
+## NOTES
+
+- Western Sahara region is allocated to Morocco's as "South EEZ"
+- Do we include the Canary Islands (Spain), Madeira Isl. (Portugal), and Cape Verde?
+
+```{r spatial_boundaries}
+
+# Load SAU spatial info
+sau_info <- my_path("Spa","SAU",name = "sau_matching_names.csv", read = T)
+
+# West african countries
+wa_eez <- c("Senegal","Mauritania","Western Sahara","Morocco (South)","Morocco (Central)","Canary Isl. (Spain)","Madeira Isl. (Portugal)","Cape Verde","Gambia")
+
+# Load SAU sf
+sau_eez <- my_sf("SAU")
+
+sau_eez %>% 
+  filter(name %in% wa_eez) %>% 
+  ggplot() +
+  geom_sf(
+    aes(
+      color = name,
+      fill = name
+      )
+  ) +
+  my_land_map() +
+  coord_sf(
+    xlim = c(-30,-5),
+    ylim = c(10,40)
+  )
+
+```
+
+
+## 2.- Extract transboundary species for the region
+
+```{r}
+
+# Read species taxon info
+taxon_inf <- my_data("sau_species")
+
+# Read transboundary species database from Palacios-Abrantes et al 2020 (FishForVisa)
+Transboundary_spp <- my_path("G", extra_path = "FishForVisa/Results/", name="Transboundary_spp.csv", read = TRUE)
+
+
+wa_trans_spp <- Transboundary_spp %>% 
+  filter(eez_name %in% wa_eez) %>% 
+  left_join(taxon_inf) %>% 
+  select(taxon_key,
+         taxon_name,
+         common_name,
+         eez_name,
+         eez_neighbour)
+
+# Double check all eezs are there, yes.
+# unique(wa_trans_spp$eez_name)
+
+write_csv(wa_trans_spp,
+          my_path("D","species","wa_trans_spp.csv"))
+
+```
+
+### Summary of results
+
+There are 149 species identified as transboundary in the region: 
+
+```{r}
+wa_trans_spp %>% 
+  group_by(common_name,taxon_name) %>% 
+  tally() %>% 
+    # View()
+  knitr::kable(
+    caption = "Transboundary species identified for the region. n = the number of times the species is shared (i.e., a proxy of stock)"
+               )
+```
+
+## 3.- Extract shifts in these species' transboundary stocks
+
+```{r}
+
+# Load SSR data
+ssr_data_path <- my_path("G","EmergingFish/Results/Proportion_2005c")
+
+# Get the sepcies we want 
+ssr_to_read <- paste0(ssr_data_path,"proportion_",unique(wa_trans_spp$taxon_key),".csv")
+
+
+nwa_ssr_data <- bind_rows(
+    lapply(ssr_to_read, read_proportion, eez = wa_eez)
+  )
+
+# Quick check data
+length(unique(nwa_ssr_data$taxon_key)) # 147 taxon
+
+unique(nwa_ssr_data$eez_name) # 8
+
+# Save data for futher analysis
+write_csv(nwa_ssr_data,
+          my_path("D","species","nwa_ssr_data.csv")
+          )
+
+```
+
+
