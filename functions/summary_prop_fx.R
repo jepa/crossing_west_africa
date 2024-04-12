@@ -2,23 +2,9 @@
 # Function modified from Palacios-Abrantes et acl (2020) code.
 # Estimates the SSR per species
 
-SummaryProp <- function(taxon_key,links="NA", top = F){
+SummaryProp <- function(taxon_key,links="NA"){
   
-  if(top == T){
-    # Reads taxon data
-    proportion_data <- fread(paste(my_path("R",extra_path = "Proportion_2005c/"),"proportion_",taxon_key,".csv", sep="")) %>% 
-      filter(!is.na(eez_neighbour)) %>% 
-      rename(sf_eez_name = eez_name) %>% 
-      left_join(Matching_names) %>% 
-      semi_join(top_stocks_per_country) %>% 
-      select(
-        1:4,
-        ensemble_mean = catch_proportion_temp_mean_ensemble_mean,
-        ensemble_sd = catch_proportion_temp_mean_ensemble_sd) %>% 
-      rename(eez_name = sf_eez_name)
-    
-  }else{
-    
+  
     # Reads taxon data
     proportion_data <- fread(paste(my_path("R",extra_path = "Proportion_2005c/"),"proportion_",taxon_key,".csv", sep="")) %>% 
       filter(!is.na(eez_neighbour)) %>% 
@@ -27,7 +13,6 @@ SummaryProp <- function(taxon_key,links="NA", top = F){
         ensemble_mean = catch_proportion_temp_mean_ensemble_mean,
         ensemble_sd = catch_proportion_temp_mean_ensemble_sd)
     
-  }
   
   # Identify SSR treshold for natural spatial variability of the stock
   proportion_tresh <- proportion_data %>% 
