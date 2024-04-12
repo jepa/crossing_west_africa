@@ -71,13 +71,13 @@ sf::sf_use_s2(use_s2 = FALSE)
 sau_info <- my_path("Spa","SAU",name = "sau_matching_names.csv", read = T)
 
 # West african countries
-wa_eez <- c("Senegal","Mauritania","Western Sahara","Morocco (South)","Morocco (Central)","Canary Isl. (Spain)","Madeira Isl. (Portugal)","Cape Verde","Gambia")
+nwa_eez <- c("Senegal","Mauritania","Western Sahara","Morocco (South)","Morocco (Central)","Canary Isl. (Spain)","Madeira Isl. (Portugal)","Cape Verde","Gambia")
 
 # Load SAU sf
 sau_eez <- my_sf("SAU")
 
 sau_eez %>% 
-  filter(name %in% wa_eez) %>% 
+  filter(name %in% nwa_eez) %>% 
   ggplot() +
   geom_sf(
     aes(
@@ -105,8 +105,8 @@ taxon_inf <- my_data("sau_species")
 Transboundary_spp <- my_path("G", extra_path = "FishForVisa/Results/", name="Transboundary_spp.csv", read = TRUE)
 
 
-wa_trans_spp <- Transboundary_spp %>% 
-  filter(eez_name %in% wa_eez) %>% 
+nwa_trans_spp <- Transboundary_spp %>% 
+  filter(eez_name %in% nwa_eez) %>% 
   left_join(taxon_inf) %>% 
   select(taxon_key,
          taxon_name,
@@ -115,10 +115,10 @@ wa_trans_spp <- Transboundary_spp %>%
          eez_neighbour)
 
 # Double check all eezs are there, yes.
-# unique(wa_trans_spp$eez_name)
+# unique(nwa_trans_spp$eez_name)
 
-write_csv(wa_trans_spp,
-          my_path("D","species","wa_trans_spp.csv"))
+write_csv(nwa_trans_spp,
+          my_path("D","species","nwa_trans_spp.csv"))
 
 ```
 
@@ -127,7 +127,7 @@ write_csv(wa_trans_spp,
 There are 149 species identified as transboundary in the region: 
 
 ```{r}
-wa_trans_spp %>% 
+nwa_trans_spp %>% 
   group_by(common_name,taxon_name) %>% 
   tally() %>% 
     # View()
@@ -144,11 +144,11 @@ wa_trans_spp %>%
 ssr_data_path <- my_path("G","EmergingFish/Results/Proportion_2005c")
 
 # Get the sepcies we want 
-ssr_to_read <- paste0(ssr_data_path,"proportion_",unique(wa_trans_spp$taxon_key),".csv")
+ssr_to_read <- paste0(ssr_data_path,"proportion_",unique(nwa_trans_spp$taxon_key),".csv")
 
 
 nwa_ssr_data <- bind_rows(
-    lapply(ssr_to_read, read_proportion, eez = wa_eez)
+    lapply(ssr_to_read, read_proportion, eez = nwa_eez)
   )
 
 # Quick check data
