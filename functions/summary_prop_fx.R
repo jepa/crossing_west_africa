@@ -1,10 +1,8 @@
 
 # Function modified from Palacios-Abrantes et acl (2020) code.
 # Estimates the SSR per species
-taxon_key <- 600006
 
-SummaryProp <- function(taxon_key,links="NA"){
-  
+summary_ssr <- function(taxon_key){
   
     # Reads taxon data
     proportion_data <- fread(paste(my_path("G",extra_path = "EmergingFish/Results/Proportion_2005c/"),"proportion_",taxon_key,".csv", sep="")) %>% 
