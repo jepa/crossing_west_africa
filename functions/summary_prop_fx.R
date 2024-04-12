@@ -1,12 +1,13 @@
 
 # Function modified from Palacios-Abrantes et acl (2020) code.
 # Estimates the SSR per species
+taxon_key <- 600006
 
 SummaryProp <- function(taxon_key,links="NA"){
   
   
     # Reads taxon data
-    proportion_data <- fread(paste(my_path("R",extra_path = "Proportion_2005c/"),"proportion_",taxon_key,".csv", sep="")) %>% 
+    proportion_data <- fread(paste(my_path("G",extra_path = "EmergingFish/Results/Proportion_2005c/"),"proportion_",taxon_key,".csv", sep="")) %>% 
       filter(!is.na(eez_neighbour)) %>% 
       select(
         1:4,
@@ -33,16 +34,6 @@ SummaryProp <- function(taxon_key,links="NA"){
     filter(over_tresh == "keep") %>%
     select(-top_tresh,-low_tresh)
   
-  if(links == "y"){
-    # summarizes by country and neighbour
-    country_summary <- proportion_tresh %>% 
-      group_by(taxon_key,eez_name,eez_neighbour,time_step) %>% 
-      summarise(
-        mean_spp = mean(ensemble_mean, na.rm = T) # average spp change from all countries sharing
-      ) %>% 
-      filter(!is.na(mean_spp))
-    
-  }else{
     # summarizes by country
     country_summary <- proportion_tresh %>% 
       group_by(taxon_key,eez_name,eez_neighbour,time_step) %>% 
@@ -50,7 +41,6 @@ SummaryProp <- function(taxon_key,links="NA"){
         mean_spp = mean(ensemble_mean,na.rm=T) # average spp change from all countries sharing that speceies
       ) %>% 
       filter(!is.na(mean_spp))
-  }
   
   return(country_summary)
 }
