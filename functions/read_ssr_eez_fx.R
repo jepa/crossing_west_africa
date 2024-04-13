@@ -1,7 +1,7 @@
 
 
 # FUNCTION TO READ DATA 
-  # This  function simply reads transboundary stock shsare ratio proportion data and filters the eezs we want
+  # This  function simply reads transboundary stock share ratio proportion data and filters the EEZs we want
 
 
 # FOR TESTING

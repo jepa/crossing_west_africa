@@ -1,10 +1,7 @@
 
 # Function modified from Palacios-Abrantes et acl (2020) code.
 # Estimates the SSR per species by combining the routine including SummaryProp and PropChange
-
-taxon_key = 600006
-
-summary_ssr <- function(taxon_key){
+summary_trans_ssr <- function(taxon_key,nwa_countries){
   
   print(taxon_key)
   # SummaryProp
@@ -17,7 +14,9 @@ summary_ssr <- function(taxon_key){
       ensemble_mean = catch_proportion_temp_mean_ensemble_mean,
       ensemble_sd = catch_proportion_temp_mean_ensemble_sd) %>% 
     filter(!is.na(ensemble_mean),
-           !is.na(ensemble_sd)) 
+           !is.na(ensemble_sd),
+           eez_name %in% nwa_countries,
+           eez_neighbour %in% nwa_countries) 
   
   # Remove cases where not all ensemble members had data
   To_be_removed <- proportion_data %>% 
@@ -49,47 +48,18 @@ summary_ssr <- function(taxon_key){
                                  "drop")
       ),
       time_step = ifelse(time_step == "early","time_early",
-                         ifelse(time_step == "mid","time_mid","historical")
+                         ifelse(time_step == "mid","time_mid","time_historical")
       )
     ) %>% 
-    # filter(time_step !="historical" | over_tresh == "keep") %>%
     filter(over_tresh == "keep") %>%
-    select(-top_tresh,-low_tresh,over_tresh)
+    select(-top_tresh,-low_tresh,-over_tresh)
   
   
-  
-  
-  
-  # 
-  # Per_Ghange_D <- full_join(Territory_T,
-  #                           Neighbour_T, 
-  #                           by = c("Name","taxon_key","time_step"),
-  #                           relationship = "many-to-many"
-  # )
-  
-  
-  # summarizes by country
-  country_summary <- proportion_tresh %>% 
-    # group_by(taxon_key,eez_name,eez_neighbour,time_step) %>% 
-    # summarise(
-    #   mean_spp = mean(ensemble_mean,na.rm=T)
-    # ) %>% 
-    filter(!is.na(ensemble_mean)) %>% 
-    select(-ensemble_sd) %>% 
-    spread(time_step,ensemble_mean) %>% 
-    # mutate_at(vars(matches("time_")), ~round((.-historical)/(abs(historical))*100,2))
-    mutate_at(vars(matches("time_")),
-              ~ifelse(historical == 0 & . == 0, 0, # If no change than 0
-                      ifelse(historical == 0 & . > 0, 100, # If changes from 0 to anything then 100
-                             ((.-historical)/((.+historical)/2))*100 # Estimate percentage differences
-                      )
-              )
-    )
-  
-  
-  
-  
-  
+# Get the stock proportion in the three time steps
+  country_summary <- proportion_tresh %>%
+    select(-ensemble_sd) %>%
+    spread(time_step,ensemble_mean) %>%
+    mutate_at(vars(matches("time_")), ~round(.*100,2))
   
   return(country_summary)
 }
