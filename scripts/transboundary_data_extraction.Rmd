@@ -70,7 +70,7 @@ sf::sf_use_s2(use_s2 = FALSE)
 # Load SAU spatial info
 sau_info <- my_path("Spa","SAU",name = "sau_matching_names.csv", read = T)
 
-# West african countries
+# West African countries
 nwa_eez <- c("Senegal","Mauritania","Western Sahara","Morocco (South)","Morocco (Central)","Canary Isl. (Spain)","Madeira Isl. (Portugal)","Cape Verde","Gambia")
 
 # Load SAU sf
@@ -140,27 +140,147 @@ nwa_trans_spp %>%
 
 ```{r}
 
-# Load SSR data
-ssr_data_path <- my_path("G","EmergingFish/Results/Proportion_2005c")
+# West African countries
+nwa_eez <- c("Senegal","Mauritania","Western Sahara","Morocco (South)","Morocco (Central)","Canary Isl. (Spain)","Madeira Isl. (Portugal)","Cape Verde","Gambia")
 
-# Get the sepcies we want 
-ssr_to_read <- paste0(ssr_data_path,"proportion_",unique(nwa_trans_spp$taxon_key),".csv")
+# Get species list
+trans_spp <- my_path("D","species","nwa_trans_spp.csv", read = T) %>% 
+  pull(taxon_key) %>% 
+  unique()
 
-
-nwa_ssr_data <- bind_rows(
-    lapply(ssr_to_read, read_proportion, eez = nwa_eez)
+# Run protocol, note that we had to modify the code a bit from the original analysis. See functions folder
+suppressWarnings(
+  suppressMessages(
+    nwa_ssr_trans_data <- 
+      bind_rows(
+        lapply(trans_spp,summary_trans_ssr, nwa_countries = nwa_eez)
+      )%>% 
+      # re organize variables
+      select(
+        taxon_key:eez_neighbour,time_historical,time_early,time_mid
+      ) 
   )
+) 
 
-# Quick check data
-length(unique(nwa_ssr_data$taxon_key)) # 147 taxon
 
-unique(nwa_ssr_data$eez_name) # 8
-
-# Save data for futher analysis
-write_csv(nwa_ssr_data,
-          my_path("D","species","nwa_ssr_data.csv")
+# Save data for further analysis
+write_csv(nwa_ssr_trans_data,
+          my_path("D","species","nwa_ssr_trans_data")
           )
+
+  
 
 ```
 
+### Summary of results
+
+```{r}
+nwa_ssr_data %>% 
+  # group_by(eez_name,eez_neighbour) %>% 
+  # summarise_at(
+  #   vars(matches("time_")), ~mean(., na.rm = T)
+  # ) %>% 
+  gather("time_period","value",time_historical:time_mid) %>% 
+  mutate(order = ifelse(time_period == "time_historical","a_hist",
+                        ifelse(time_period == "time_early","b_early","c_mid"))
+         ) %>% 
+  arrange(eez_name) %>% 
+  slice(1:936) %>% 
+  # View()
+  ggplot() +
+    geom_boxplot(
+      aes(
+        x = order,
+        y = value
+        # fill = order,
+        # color = order
+      ),
+      # stat = "identity",
+      # position = "dodge"
+  ) +
+  ylab("Average SSR across all stocks (%)") +
+  # coord_flip() +
+  scale_fill_viridis_d("Time period") +
+  scale_color_viridis_d("Time period") +
+  # facet_wrap(eez_neighbour~eez_name)
+  facet_grid(eez_neighbour~eez_name) +
+  theme_bw()
+```
+
+## 3.- Extract shifts in these species' straddling stocks
+
+```{r}
+
+# West African countries
+nwa_eez <- c("Senegal","Mauritania","Western Sahara","Morocco (South)","Morocco (Central)","Canary Isl. (Spain)","Madeira Isl. (Portugal)","Cape Verde","Gambia")
+
+# Get straddling species list
+stradd_spp <- read_csv("~/GitHub/MigrantFish/results/supplements/straddling_species.csv") %>% 
+  select(taxon_name) %>% 
+  left_join(my_data("dbem_species")) 
+
+# Save data for further analysis
+write_csv(stradd_spp,
+          my_path("D","species","nwa_stradd_spp.csv")
+          )
+
+stradd_spp <- stradd_spp %>% 
+  pull(taxon_key)
+
+# Get realms
+realm_to_eez <- read_csv("~/GitHub/MigrantFish/results/supplements/realm_to_eez.csv") %>% 
+  clean_names() %>% 
+  filter(eez %in% nwa_eez)
+
+realms <- unique(realm_to_eez$realm)
+
+# Load data
+stradd_spp_path <- paste0("~/Library/CloudStorage/OneDrive-UBC/Data/MigrantFish/Results/Per_change_realm_rfmo/", stradd_spp,"_perchg.csv")
+
+
+nwa_ssr_stradd_data <- 
+  bind_rows(
+    lapply(stradd_spp_path, read_ssr_stradd, realm = realms)
+  )
+
+unique(nwa_ssr_stradd_data)
+
+# Save data for further analysis
+write_csv(nwa_ssr_stradd_data,
+          my_path("D","species","nwa_ssr_stradd_data.csv")
+          )
+
+
+```
+
+### Summary of results
+
+
+```{r}
+
+nwa_ssr_stradd_data %>% 
+  group_by(rcp,period,rfmo_name,realm_name,change) %>%
+  tally() %>% 
+  filter(rcp == "rcp85") %>%
+  mutate(direction = ifelse(change == "gain","RFMO",
+                            ifelse(change == "lost","EEZs","Same"))
+         ) %>% 
+  # View()
+  ggplot() +
+    geom_boxplot(
+      aes(
+        x = period,
+        y = n,
+        fill = direction,
+        # color = order
+      ),
+  ) +
+  ylab("Number of stocks shifting") +
+  # coord_flip() +
+  scale_fill_viridis_d("Direction of change") +
+  # scale_color_viridis_d("Time period") +
+  # facet_wrap(eez_neighbour~eez_name)
+  # facet_grid(eez_neighbour~eez_name) +
+  theme_bw()
+```
 
