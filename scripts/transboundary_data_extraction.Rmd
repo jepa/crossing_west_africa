@@ -3,7 +3,7 @@ title: "Untitled"
 author: "Juliano Palacios Abrantes"
 date: "2024-04-09"
 output: 
-  html_document: 
+  pdf_document: 
     toc: yes
     keep_md: yes
 ---
@@ -65,7 +65,7 @@ sf::sf_use_s2(use_s2 = FALSE)
 - Western Sahara region is allocated to Morocco's as "South EEZ"
 - Do we include the Canary Islands (Spain), Madeira Isl. (Portugal), and Cape Verde?
 
-```{r spatial_boundaries}
+```{r spatial_boundaries, eval = T, echo = F, message = F, warning = F,}
 
 # Load SAU spatial info
 sau_info <- my_path("Spa","SAU",name = "sau_matching_names.csv", read = T)
@@ -74,7 +74,7 @@ sau_info <- my_path("Spa","SAU",name = "sau_matching_names.csv", read = T)
 nwa_eez <- c("Senegal","Mauritania","Western Sahara","Morocco (South)","Morocco (Central)","Canary Isl. (Spain)","Madeira Isl. (Portugal)","Cape Verde","Gambia")
 
 # Load SAU sf
-sau_eez <- my_sf("SAU")
+sau_eez <- suppressMessages(my_sf("SAU")) 
 
 sau_eez %>% 
   filter(name %in% nwa_eez) %>% 
@@ -96,7 +96,7 @@ sau_eez %>%
 
 ## 2.- Extract transboundary species for the region
 
-```{r}
+```{r transboundary_extraction, eval = F, echo = F}
 
 # Read species taxon info
 taxon_inf <- my_data("sau_species")
@@ -126,11 +126,13 @@ write_csv(nwa_trans_spp,
 
 There are 149 species identified as transboundary in the region: 
 
-```{r}
-nwa_trans_spp %>% 
+```{r tran_example, eval = T, echo = F, message= F, error=F}
+
+my_path("D","species","nwa_trans_spp.csv", read = T) %>% 
   group_by(common_name,taxon_name) %>% 
   tally() %>% 
     # View()
+  head(10) %>% 
   knitr::kable(
     caption = "Transboundary species identified for the region. n = the number of times the species is shared (i.e., a proxy of stock)"
                )
@@ -138,7 +140,7 @@ nwa_trans_spp %>%
 
 ## 3.- Extract shifts in these species' transboundary stocks
 
-```{r}
+```{r get_ssr_trans, eval = F, echo = F}
 
 # West African countries
 nwa_eez <- c("Senegal","Mauritania","Western Sahara","Morocco (South)","Morocco (Central)","Canary Isl. (Spain)","Madeira Isl. (Portugal)","Cape Verde","Gambia")
@@ -174,8 +176,9 @@ write_csv(nwa_ssr_trans_data,
 
 ### Summary of results
 
-```{r}
-nwa_ssr_data %>% 
+```{r summary_trans_ssr, eval = T, echo = F, message = F, warning = F, fig.cap = "Stock Share Ratio (SSR) in percentage (left) between each EEZ of all stocks by time frame (bottom). reading  top to right, for example, Cape Verte has 75% of the SSR of one stock shared with Mauritania who has the 25% (100-75) in the historical time period."}
+
+my_path("D",extra_path = "species", name = "nwa_ssr_trans_data.csv", read = T) %>% 
   # group_by(eez_name,eez_neighbour) %>% 
   # summarise_at(
   #   vars(matches("time_")), ~mean(., na.rm = T)
@@ -198,7 +201,8 @@ nwa_ssr_data %>%
       # stat = "identity",
       # position = "dodge"
   ) +
-  ylab("Average SSR across all stocks (%)") +
+  ylab("Stock Share Ratio across all stocks (%)") +
+  xlab("Time period") +
   # coord_flip() +
   scale_fill_viridis_d("Time period") +
   scale_color_viridis_d("Time period") +
@@ -209,7 +213,7 @@ nwa_ssr_data %>%
 
 ## 3.- Extract shifts in these species' straddling stocks
 
-```{r}
+```{r get_ssr_strad, eval = F, echo = F}
 
 # West African countries
 nwa_eez <- c("Senegal","Mauritania","Western Sahara","Morocco (South)","Morocco (Central)","Canary Isl. (Spain)","Madeira Isl. (Portugal)","Cape Verde","Gambia")
@@ -256,9 +260,9 @@ write_csv(nwa_ssr_stradd_data,
 ### Summary of results
 
 
-```{r}
+```{r summary_stradd_ssr, eval = T, echo = F, message = F, warning = F, fig.cap = "Number of stocks shifting their Stock Share Ratio (SSR) in percentage (left) between EEZs (grouped by realm) and ICCAT by time period (bottom). Colors represent the direction of change. For example, in all cases most stocks wont shift, but when they do they will likeley go to the high seas. Note that the varioation is given because there are two realms in the region"}
 
-nwa_ssr_stradd_data %>% 
+my_path("D","species","nwa_ssr_stradd_data.csv", read = T) %>% 
   group_by(rcp,period,rfmo_name,realm_name,change) %>%
   tally() %>% 
   filter(rcp == "rcp85") %>%
@@ -282,5 +286,6 @@ nwa_ssr_stradd_data %>%
   # facet_wrap(eez_neighbour~eez_name)
   # facet_grid(eez_neighbour~eez_name) +
   theme_bw()
+
 ```
 
